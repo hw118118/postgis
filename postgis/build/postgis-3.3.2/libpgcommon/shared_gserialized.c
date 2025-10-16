@@ -47,7 +47,17 @@ shared_gserialized_new_cached(FunctionCallInfo fcinfo, Datum d)
 SHARED_GSERIALIZED *
 shared_gserialized_ref(FunctionCallInfo fcinfo, SHARED_GSERIALIZED *ref)
 {
-	if (MemoryContextContains(PostgisCacheContext(fcinfo), ref))
+	/*
+	 * In CBDB, pointer is not guaranteed to always be palloc aligned. Due to
+	 * our use of MemTuples, the pointer may instead point into the palloc'd
+	 * region to an attr offset. Therefore we cannot assume the MemoryContext
+	 * from which the pointer was palloc'd exists in the bytes immediately in
+	 * front of the pointer.
+	 *
+	 * Instead use MemoryContextContainsGenericAllocation() which correctly
+	 * handles the above scenario.
+	 */
+	if (MemoryContextContainsGenericAllocation(PostgisCacheContext(fcinfo), ref))
 	{
 		ref->count++;
 		return ref;
@@ -65,7 +75,17 @@ shared_gserialized_ref(FunctionCallInfo fcinfo, SHARED_GSERIALIZED *ref)
 void
 shared_gserialized_unref(FunctionCallInfo fcinfo, SHARED_GSERIALIZED *ref)
 {
-	if (MemoryContextContains(PostgisCacheContext(fcinfo), ref))
+	/*
+	 * In CBDB, pointer is not guaranteed to always be palloc aligned. Due to
+	 * our use of MemTuples, the pointer may instead point into the palloc'd
+	 * region to an attr offset. Therefore we cannot assume the MemoryContext
+	 * from which the pointer was palloc'd exists in the bytes immediately in
+	 * front of the pointer.
+	 *
+	 * Instead use MemoryContextContainsGenericAllocation() which correctly
+	 * handles the above scenario.
+	 */
+	if (MemoryContextContainsGenericAllocation(PostgisCacheContext(fcinfo), ref))
 	{
 		ref->count--;
 		if (!ref->count)
